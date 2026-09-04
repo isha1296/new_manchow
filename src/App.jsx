@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import ShinyText from './ShinyText';
 
 export default function App() {
@@ -10,6 +11,16 @@ export default function App() {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [selectedDishModal, setSelectedDishModal] = useState(null);
   const [openFaq, setOpenFaq] = useState(0);
+  const [toastMessage, setToastMessage] = useState(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+
+  // Toast Notification Trigger
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((prev) => (prev === msg ? null : prev));
+    }, 3500);
+  };
 
   // WhatsApp Form State
   const [formName, setFormName] = useState('');
@@ -39,9 +50,14 @@ export default function App() {
     { id: 'contact', label: 'Contact & Order' },
   ];
 
-  // Scroll active section highlighter
+  // Scroll active section highlighter & back to top visibility
   useEffect(() => {
     const handleScroll = () => {
+      if (window.scrollY > 400) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
       const sections = navLinks.map((link) => document.getElementById(link.id));
       const scrollPos = window.scrollY + 200;
 
@@ -75,6 +91,7 @@ export default function App() {
       `*Special Instructions:* ${formNotes || 'None'}\n\n` +
       `Please confirm my order and share total bill / estimated delivery time.`;
     
+    showToast("Generating WhatsApp Order...");
     window.open(createWhatsAppLink(msg), '_blank');
   };
 
@@ -378,32 +395,42 @@ export default function App() {
               <a
                 key={link.id}
                 href={`#${link.id}`}
-                className={`text-xs font-semibold tracking-wider uppercase transition-colors hover:text-[#FC5A1F] ${
-                  activeSection === link.id ? 'text-[#FC5A1F] font-bold border-b-2 border-[#FC5A1F] pb-1' : 'text-[#E4BEB3]/80'
+                className={`relative text-xs font-semibold tracking-wider uppercase transition-colors hover:text-[#FC5A1F] py-1 ${
+                  activeSection === link.id ? 'text-[#FC5A1F] font-bold' : 'text-[#E4BEB3]/80'
                 }`}
               >
                 {link.label}
+                {activeSection === link.id && (
+                  <motion.div
+                    layoutId="activeNavIndicator"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#FC5A1F] rounded-full shadow-[0_0_8px_#FC5A1F]"
+                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                  />
+                )}
               </a>
             ))}
           </nav>
 
           {/* Header Action Button */}
           <div className="hidden sm:flex items-center gap-4">
-            <a
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => showToast("Opening WhatsApp Order...")}
               href={createWhatsAppLink("Hello New Manchow! I would like to order food / reserve a table.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 shadow-lg hover:shadow-[#25D366]/30 transition-all transform hover:-translate-y-0.5"
+              className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-2 shadow-lg hover:shadow-[#25D366]/30 transition-all"
             >
               <i className="fa-brands fa-whatsapp text-lg"></i>
               Order on WhatsApp
-            </a>
+            </motion.a>
           </div>
 
           {/* Mobile Hamburger Toggle Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 text-[#F9DCD4] hover:text-[#FC5A1F] focus:outline-none"
+            className="lg:hidden p-2 text-[#F9DCD4] hover:text-[#FC5A1F] focus:outline-none btn-click-effect"
             aria-label="Toggle Navigation Menu"
           >
             <i className={`fa-solid ${mobileMenuOpen ? 'fa-xmark' : 'fa-bars'} text-2xl`}></i>
@@ -411,32 +438,43 @@ export default function App() {
         </div>
 
         {/* Mobile Navigation Drawer */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-[#1A0D08] border-b border-[#FC5A1F]/30 px-6 py-6 space-y-4 animate-fadeIn">
-            {navLinks.map((link) => (
-              <a
-                key={link.id}
-                href={`#${link.id}`}
-                onClick={() => setMobileMenuOpen(false)}
-                className="block text-sm font-semibold text-[#F9DCD4] hover:text-[#FC5A1F] py-1.5 border-b border-[#FC5A1F]/10"
-              >
-                {link.label}
-              </a>
-            ))}
-            <div className="pt-2">
-              <a
-                href={createWhatsAppLink("Hello New Manchow! I want to place a food order on WhatsApp.")}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full bg-[#25D366] text-white py-3 rounded-full font-bold text-center flex items-center justify-center gap-2 shadow-md"
-              >
-                <i className="fa-brands fa-whatsapp text-xl"></i>
-                Order via WhatsApp
-              </a>
-            </div>
-          </div>
-        )}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              className="lg:hidden bg-[#1A0D08] border-b border-[#FC5A1F]/30 px-6 py-6 space-y-4 overflow-hidden"
+            >
+              {navLinks.map((link) => (
+                <a
+                  key={link.id}
+                  href={`#${link.id}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block text-sm font-semibold text-[#F9DCD4] hover:text-[#FC5A1F] py-1.5 border-b border-[#FC5A1F]/10"
+                >
+                  {link.label}
+                </a>
+              ))}
+              <div className="pt-2">
+                <a
+                  href={createWhatsAppLink("Hello New Manchow! I want to place a food order on WhatsApp.")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    showToast("Opening WhatsApp Order...");
+                  }}
+                  className="w-full bg-[#25D366] text-white py-3 rounded-full font-bold text-center flex items-center justify-center gap-2 shadow-md btn-click-effect"
+                >
+                  <i className="fa-brands fa-whatsapp text-xl"></i>
+                  Order via WhatsApp
+                </a>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </header>
 
 
@@ -459,7 +497,12 @@ export default function App() {
         <div className="relative z-10 max-w-4xl mx-auto text-center space-y-6">
           
           {/* Hero Pill Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1A0D08]/90 backdrop-blur-md border border-[#FC5A1F]/40 shadow-xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#1A0D08]/90 backdrop-blur-md border border-[#FC5A1F]/40 shadow-xl"
+          >
             <span className="text-[#FC5A1F] text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
               🔥 Wok-Hei Dragon Flame Cooking
             </span>
@@ -471,71 +514,103 @@ export default function App() {
               shineColor="#FFFFFF"
               spread={100}
             />
-          </div>
+          </motion.div>
 
           {/* Main Display Title */}
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-serif font-bold text-white tracking-tight leading-tight">
+          <motion.h1
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-5xl sm:text-7xl md:text-8xl font-serif font-bold text-white tracking-tight leading-tight"
+          >
             New <span className="flame-gradient-text italic font-serif">Manchow</span>
-          </h1>
+          </motion.h1>
 
           {/* Sub-tagline */}
-          <p className="text-lg sm:text-2xl font-serif italic text-[#FFB77B]">
+          <motion.p
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-lg sm:text-2xl font-serif italic text-[#FFB77B]"
+          >
             Bold Schezwan • Sizzling Starters • Authentic Wok Magic
-          </p>
+          </motion.p>
 
           {/* Description */}
-          <p className="text-base sm:text-lg text-[#E4BEB3] max-w-2xl mx-auto leading-relaxed">
+          <motion.p
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="text-base sm:text-lg text-[#E4BEB3] max-w-2xl mx-auto leading-relaxed"
+          >
             Experience high-heat wok cooking where aromatic garlic, dark red chili peppers, fresh herbs, and wok-hei charcoal flames craft unforgettable Indo-Chinese flavors.
-          </p>
+          </motion.p>
 
           {/* Hero Action Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-            <a
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="flex flex-wrap items-center justify-center gap-4 pt-4"
+          >
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => showToast("Opening WhatsApp Order...")}
               href={createWhatsAppLink("Hello New Manchow! I want to order food now for fast delivery.")}
               target="_blank"
               rel="noopener noreferrer"
-              className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-8 py-4 rounded-full font-bold text-base flex items-center gap-3 shadow-xl hover:shadow-[#25D366]/40 transition-all transform hover:-translate-y-1"
+              className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-8 py-4 rounded-full font-bold text-base flex items-center gap-3 shadow-xl hover:shadow-[#25D366]/40 transition-all"
             >
               <i className="fa-brands fa-whatsapp text-2xl"></i>
               Fast Order on WhatsApp
-            </a>
+            </motion.a>
 
-            <a
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               href="#menu"
-              className="border-2 border-[#FC5A1F] text-[#FC5A1F] hover:bg-[#FC5A1F] hover:text-white px-7 py-3.5 rounded-full font-bold text-base transition-all transform hover:-translate-y-1 shadow-lg"
+              className="border-2 border-[#FC5A1F] text-[#FC5A1F] hover:bg-[#FC5A1F] hover:text-white px-7 py-3.5 rounded-full font-bold text-base transition-all shadow-lg"
             >
               <i className="fa-solid fa-utensils mr-2"></i>
               View Food Menu
-            </a>
+            </motion.a>
 
-            <a
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               href="#combos"
               className="bg-[#1A0D08]/80 hover:bg-[#1A0D08] text-white border border-white/20 px-7 py-3.5 rounded-full font-semibold text-base backdrop-blur-md transition-all shadow-md"
             >
               <i className="fa-solid fa-fire mr-2 text-[#FC5A1F]"></i>
               Party Combos
-            </a>
-          </div>
+            </motion.a>
+          </motion.div>
 
           {/* Stat Highlights */}
-          <div className="pt-10 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto">
-            <div className="glass-card p-4 rounded-2xl text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="pt-10 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-3xl mx-auto"
+          >
+            <motion.div whileHover={{ y: -4, scale: 1.03 }} className="glass-card p-4 rounded-2xl text-center">
               <p className="text-2xl sm:text-3xl font-serif font-bold text-[#FC5A1F]">15,000+</p>
               <p className="text-xs text-[#E4BEB3] mt-1">Soups Served</p>
-            </div>
-            <div className="glass-card p-4 rounded-2xl text-center">
+            </motion.div>
+            <motion.div whileHover={{ y: -4, scale: 1.03 }} className="glass-card p-4 rounded-2xl text-center">
               <p className="text-2xl sm:text-3xl font-serif font-bold text-[#FFB77B]">4.9 ★</p>
               <p className="text-xs text-[#E4BEB3] mt-1">Foodie Rating</p>
-            </div>
-            <div className="glass-card p-4 rounded-2xl text-center">
+            </motion.div>
+            <motion.div whileHover={{ y: -4, scale: 1.03 }} className="glass-card p-4 rounded-2xl text-center">
               <p className="text-2xl sm:text-3xl font-serif font-bold text-[#FC5A1F]">30 Mins</p>
               <p className="text-xs text-[#E4BEB3] mt-1">Express Delivery</p>
-            </div>
-            <div className="glass-card p-4 rounded-2xl text-center">
+            </motion.div>
+            <motion.div whileHover={{ y: -4, scale: 1.03 }} className="glass-card p-4 rounded-2xl text-center">
               <p className="text-2xl sm:text-3xl font-serif font-bold text-[#FFB77B]">100%</p>
               <p className="text-xs text-[#E4BEB3] mt-1">Fresh Wok Hei</p>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
 
         </div>
 
@@ -656,70 +731,92 @@ export default function App() {
         {/* Menu Filter Tabs */}
         <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
           {menuCategories.map((cat) => (
-            <button
+            <motion.button
               key={cat.id}
+              whileTap={{ scale: 0.94 }}
               onClick={() => setActiveMenuTab(cat.id)}
-              className={`px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all ${
+              className={`relative px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider transition-colors ${
                 activeMenuTab === cat.id
-                  ? 'bg-[#FC5A1F] text-white shadow-lg shadow-[#FC5A1F]/30 scale-105'
-                  : 'bg-[#1A0D08] text-[#E4BEB3] hover:text-white hover:bg-[#25140D] border border-[#FC5A1F]/20'
+                  ? 'text-white'
+                  : 'bg-[#1A0D08] text-[#E4BEB3] hover:text-white border border-[#FC5A1F]/20'
               }`}
             >
+              {activeMenuTab === cat.id && (
+                <motion.div
+                  layoutId="activeMenuTab"
+                  className="absolute inset-0 bg-[#FC5A1F] rounded-full -z-10 shadow-lg shadow-[#FC5A1F]/30"
+                  transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                />
+              )}
               {cat.label}
-            </button>
+            </motion.button>
           ))}
         </div>
 
         {/* Menu Items Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMenuItems.map((item) => (
-            <div key={item.id} className="glass-card rounded-2xl overflow-hidden glass-card-hover flex flex-col justify-between border border-[#FC5A1F]/20">
-              
-              <div className="relative h-48 overflow-hidden">
-                <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                <div className="absolute top-3 left-3 bg-[#0A0705]/80 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 border border-white/20">
-                  <span className={`w-2.5 h-2.5 rounded-full ${item.veg ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
-                  <span className="text-white">{item.veg ? 'Pure Veg' : 'Non-Veg'}</span>
-                </div>
-                <div className="absolute top-3 right-3 bg-[#FC5A1F] text-white font-bold text-[11px] px-3 py-1 rounded-full shadow-md">
-                  {item.tag}
-                </div>
-              </div>
-
-              <div className="p-6 flex-1 flex flex-col justify-between space-y-3">
-                <div>
-                  <div className="flex items-baseline justify-between">
-                    <h3 className="font-serif font-bold text-lg text-white">{item.name}</h3>
-                    <span className="font-serif font-bold text-[#FFB77B] text-xl ml-2">{item.price}</span>
+        <motion.div layout className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <AnimatePresence mode="popLayout">
+            {filteredMenuItems.map((item) => (
+              <motion.div
+                layout
+                key={item.id}
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: -10 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
+                whileHover={{ y: -6 }}
+                className="glass-card rounded-2xl overflow-hidden glass-card-hover flex flex-col justify-between border border-[#FC5A1F]/20 group"
+              >
+                
+                <div className="relative h-48 overflow-hidden">
+                  <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                  <div className="absolute top-3 left-3 bg-[#0A0705]/80 backdrop-blur-md px-2.5 py-1 rounded-md text-xs font-bold flex items-center gap-1.5 border border-white/20">
+                    <span className={`w-2.5 h-2.5 rounded-full ${item.veg ? 'bg-emerald-500' : 'bg-red-500'}`}></span>
+                    <span className="text-white">{item.veg ? 'Pure Veg' : 'Non-Veg'}</span>
                   </div>
-                  <p className="text-xs text-[#E4BEB3] leading-relaxed mt-2">{item.desc}</p>
-                </div>
-
-                <div className="pt-3 border-t border-[#FC5A1F]/15 flex items-center justify-between">
-                  <span className="text-xs text-[#FC5A1F] font-semibold">{item.spicy}</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedDishModal(item)}
-                      className="border border-[#FC5A1F]/40 hover:bg-[#FC5A1F]/10 text-[#FFB77B] px-3 py-1.5 rounded-lg text-xs font-semibold"
-                    >
-                      Details
-                    </button>
-                    <a
-                      href={createWhatsAppLink(`Hello New Manchow! I want to order *${item.name}* (${item.price}).`)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md"
-                    >
-                      <i className="fa-brands fa-whatsapp text-sm"></i>
-                      Order
-                    </a>
+                  <div className="absolute top-3 right-3 bg-[#FC5A1F] text-white font-bold text-[11px] px-3 py-1 rounded-full shadow-md">
+                    {item.tag}
                   </div>
                 </div>
-              </div>
 
-            </div>
-          ))}
-        </div>
+                <div className="p-6 flex-1 flex flex-col justify-between space-y-3">
+                  <div>
+                    <div className="flex items-baseline justify-between">
+                      <h3 className="font-serif font-bold text-lg text-white group-hover:text-[#FFB77B] transition-colors">{item.name}</h3>
+                      <span className="font-serif font-bold text-[#FFB77B] text-xl ml-2">{item.price}</span>
+                    </div>
+                    <p className="text-xs text-[#E4BEB3] leading-relaxed mt-2">{item.desc}</p>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#FC5A1F]/15 flex items-center justify-between">
+                    <span className="text-xs text-[#FC5A1F] font-semibold">{item.spicy}</span>
+                    <div className="flex gap-2">
+                      <motion.button
+                        whileTap={{ scale: 0.92 }}
+                        onClick={() => setSelectedDishModal(item)}
+                        className="border border-[#FC5A1F]/40 hover:bg-[#FC5A1F]/15 text-[#FFB77B] px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+                      >
+                        Details
+                      </motion.button>
+                      <motion.a
+                        whileTap={{ scale: 0.92 }}
+                        onClick={() => showToast(`Ordering ${item.name} on WhatsApp...`)}
+                        href={createWhatsAppLink(`Hello New Manchow! I want to order *${item.name}* (${item.price}).`)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md transition-colors"
+                      >
+                        <i className="fa-brands fa-whatsapp text-sm"></i>
+                        Order
+                      </motion.a>
+                    </div>
+                  </div>
+                </div>
+
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        </motion.div>
 
         {/* Order Callout Banner */}
         <div className="mt-16 glass-card p-8 rounded-3xl border border-[#FC5A1F]/30 flex flex-col md:flex-row items-center justify-between gap-6 bg-gradient-to-r from-[#1A0D08] to-[#321A11]">
@@ -831,76 +928,108 @@ export default function App() {
           {/* Gallery Category Filter Tabs */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-10">
             {galleryCategories.map((cat) => (
-              <button
+              <motion.button
                 key={cat.id}
+                whileTap={{ scale: 0.94 }}
                 onClick={() => setActiveGalleryTab(cat.id)}
-                className={`px-5 py-2 rounded-full text-xs font-semibold transition-all ${
+                className={`relative px-5 py-2 rounded-full text-xs font-semibold transition-colors ${
                   activeGalleryTab === cat.id
-                    ? 'bg-[#FC5A1F] text-white font-bold shadow-md scale-105'
+                    ? 'text-white font-bold'
                     : 'bg-[#1A0D08] text-[#E4BEB3] hover:text-white border border-[#FC5A1F]/20'
                 }`}
               >
+                {activeGalleryTab === cat.id && (
+                  <motion.div
+                    layoutId="activeGalleryTab"
+                    className="absolute inset-0 bg-[#FC5A1F] rounded-full -z-10 shadow-md shadow-[#FC5A1F]/30"
+                    transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                  />
+                )}
                 {cat.label}
-              </button>
+              </motion.button>
             ))}
           </div>
 
           {/* Image Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {filteredGallery.map((img) => (
-              <div
-                key={img.id}
-                onClick={() => setLightboxImage(img)}
-                className="group relative h-64 rounded-2xl overflow-hidden border border-[#FC5A1F]/25 cursor-pointer shadow-lg"
-              >
-                <img
-                  src={img.url}
-                  alt={img.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5">
-                  <span className="text-[#FFB77B] font-serif font-bold text-lg">{img.title}</span>
-                  <span className="text-xs text-gray-300 flex items-center gap-1 mt-1">
-                    <i className="fa-solid fa-expand text-xs"></i> Click to enlarge
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
+          <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            <AnimatePresence mode="popLayout">
+              {filteredGallery.map((img) => (
+                <motion.div
+                  layout
+                  key={img.id}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setLightboxImage(img)}
+                  className="group relative h-64 rounded-2xl overflow-hidden border border-[#FC5A1F]/25 cursor-pointer shadow-lg"
+                >
+                  <img
+                    src={img.url}
+                    alt={img.title}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-5">
+                    <span className="text-[#FFB77B] font-serif font-bold text-lg">{img.title}</span>
+                    <span className="text-xs text-gray-300 flex items-center gap-1 mt-1">
+                      <i className="fa-solid fa-expand text-xs"></i> Click to enlarge
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </motion.div>
 
         </div>
       </section>
 
       {/* Lightbox Modal */}
-      {lightboxImage && (
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-          <div className="relative max-w-4xl w-full bg-[#1A0D08] rounded-3xl overflow-hidden border-2 border-[#FC5A1F]/50 shadow-2xl animate-scaleUp">
-            <button
-              onClick={() => setLightboxImage(null)}
-              className="absolute top-4 right-4 z-10 bg-black/60 hover:bg-black text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors border border-white/20"
+      <AnimatePresence>
+        {lightboxImage && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative max-w-4xl w-full bg-[#1A0D08] rounded-3xl overflow-hidden border-2 border-[#FC5A1F]/50 shadow-2xl"
             >
-              <i className="fa-solid fa-xmark text-xl"></i>
-            </button>
-            <div className="h-[70vh] bg-black">
-              <img src={lightboxImage.url} alt={lightboxImage.title} className="w-full h-full object-contain" />
-            </div>
-            <div className="p-5 bg-[#1A0D08] flex items-center justify-between border-t border-[#FC5A1F]/20">
-              <div>
-                <h4 className="font-serif font-bold text-white text-xl">{lightboxImage.title}</h4>
-                <p className="text-xs text-[#FC5A1F] uppercase tracking-wider mt-0.5">New Manchow Indo-Chinese Dining</p>
-              </div>
-              <a
-                href={createWhatsAppLink(`Hello New Manchow! I saw your dish photo "${lightboxImage.title}" and want to order.`)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 shadow-md"
+              <button
+                onClick={() => setLightboxImage(null)}
+                className="absolute top-4 right-4 z-10 bg-black/60 hover:bg-black text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors border border-white/20 btn-click-effect"
               >
-                <i className="fa-brands fa-whatsapp text-lg"></i> Order This Dish
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+                <i className="fa-solid fa-xmark text-xl"></i>
+              </button>
+              <div className="h-[70vh] bg-black">
+                <img src={lightboxImage.url} alt={lightboxImage.title} className="w-full h-full object-contain" />
+              </div>
+              <div className="p-5 bg-[#1A0D08] flex items-center justify-between border-t border-[#FC5A1F]/20">
+                <div>
+                  <h4 className="font-serif font-bold text-white text-xl">{lightboxImage.title}</h4>
+                  <p className="text-xs text-[#FC5A1F] uppercase tracking-wider mt-0.5">New Manchow Indo-Chinese Dining</p>
+                </div>
+                <motion.a
+                  whileTap={{ scale: 0.93 }}
+                  onClick={() => showToast(`Ordering ${lightboxImage.title}...`)}
+                  href={createWhatsAppLink(`Hello New Manchow! I saw your dish photo "${lightboxImage.title}" and want to order.`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-[#25D366] hover:bg-[#20bd5a] text-white px-5 py-2.5 rounded-full text-xs font-bold flex items-center gap-2 shadow-md"
+                >
+                  <i className="fa-brands fa-whatsapp text-lg"></i> Order This Dish
+                </motion.a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
       {/* ---------------------------------------------------- */}
@@ -1038,13 +1167,27 @@ export default function App() {
                 className="w-full p-5 text-left font-serif font-bold text-white text-base sm:text-lg flex items-center justify-between gap-4 hover:text-[#FC5A1F] transition-colors"
               >
                 <span>{faq.q}</span>
-                <i className={`fa-solid ${openFaq === idx ? 'fa-minus text-[#FC5A1F]' : 'fa-plus text-gray-400'} text-sm`}></i>
+                <motion.i
+                  animate={{ rotate: openFaq === idx ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                  className={`fa-solid ${openFaq === idx ? 'fa-minus text-[#FC5A1F]' : 'fa-plus text-gray-400'} text-sm`}
+                />
               </button>
-              {openFaq === idx && (
-                <div className="px-5 pb-5 text-xs sm:text-sm text-[#E4BEB3] leading-relaxed border-t border-[#FC5A1F]/10 pt-4 animate-fadeIn">
-                  {faq.a}
-                </div>
-              )}
+              <AnimatePresence>
+                {openFaq === idx && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-5 pb-5 text-xs sm:text-sm text-[#E4BEB3] leading-relaxed border-t border-[#FC5A1F]/10 pt-4">
+                      {faq.a}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </div>
@@ -1284,83 +1427,143 @@ export default function App() {
 
 
       {/* ---------------------------------------------------- */}
-      {/* FLOATING WHATSAPP BUTTON */}
+      {/* FLOATING ACTION BUTTONS & TOAST NOTIFICATION */}
       {/* ---------------------------------------------------- */}
-      <a
-        href={createWhatsAppLink("Hello New Manchow! I want to place a food order on WhatsApp.")}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center text-3xl shadow-2xl animate-whatsapp-pulse hover:scale-110 transition-transform"
-        aria-label="Order on WhatsApp"
-      >
-        <i className="fa-brands fa-whatsapp"></i>
-      </a>
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+        {/* Back To Top Button */}
+        <AnimatePresence>
+          {showBackToTop && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.5, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.5, y: 20 }}
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              className="bg-[#1A0D08] text-[#FC5A1F] border border-[#FC5A1F]/50 w-12 h-12 rounded-full flex items-center justify-center text-lg shadow-xl backdrop-blur-md"
+              aria-label="Back to top"
+            >
+              <i className="fa-solid fa-arrow-up"></i>
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+        {/* Floating WhatsApp Button */}
+        <motion.a
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => showToast("Opening WhatsApp Order...")}
+          href={createWhatsAppLink("Hello New Manchow! I want to place a food order on WhatsApp.")}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-[#25D366] text-white w-14 h-14 rounded-full flex items-center justify-center text-3xl shadow-2xl animate-whatsapp-pulse"
+          aria-label="Order on WhatsApp"
+        >
+          <i className="fa-brands fa-whatsapp"></i>
+        </motion.a>
+      </div>
+
+      {/* Interactive Toast Notification */}
+      <AnimatePresence>
+        {toastMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: 40, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed bottom-6 left-6 z-50 bg-[#1A0D08] border border-[#FC5A1F] text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 backdrop-blur-lg"
+          >
+            <div className="w-8 h-8 rounded-full bg-[#25D366]/20 text-[#25D366] flex items-center justify-center text-lg shrink-0">
+              <i className="fa-brands fa-whatsapp"></i>
+            </div>
+            <span className="text-xs font-semibold text-[#F9DCD4]">{toastMessage}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
 
       {/* ---------------------------------------------------- */}
       {/* DISH DETAILS MODAL */}
       {/* ---------------------------------------------------- */}
-      {selectedDishModal && (
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4">
-          <div className="relative max-w-2xl w-full bg-[#1A0D08] rounded-3xl overflow-hidden border-2 border-[#FC5A1F]/50 shadow-2xl animate-scaleUp p-6 sm:p-8 space-y-6">
-            <button
-              onClick={() => setSelectedDishModal(null)}
-              className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors border border-white/20"
+      <AnimatePresence>
+        {selectedDishModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 modal-backdrop flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.85, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="relative max-w-2xl w-full bg-[#1A0D08] rounded-3xl overflow-hidden border-2 border-[#FC5A1F]/50 shadow-2xl p-6 sm:p-8 space-y-6"
             >
-              <i className="fa-solid fa-xmark text-lg"></i>
-            </button>
-
-            <div className="flex items-center gap-4">
-              <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-[#FC5A1F]/40">
-                <img src={selectedDishModal.image} alt={selectedDishModal.name} className="w-full h-full object-cover" />
-              </div>
-              <div>
-                <span className="text-xs bg-[#FC5A1F]/20 text-[#FC5A1F] font-bold px-2.5 py-0.5 rounded-full">{selectedDishModal.tag}</span>
-                <h3 className="font-serif font-bold text-2xl text-white mt-1">{selectedDishModal.name}</h3>
-                <p className="font-serif font-bold text-[#FFB77B] text-xl">{selectedDishModal.price}</p>
-              </div>
-            </div>
-
-            <p className="text-xs sm:text-sm text-[#E4BEB3] leading-relaxed">
-              {selectedDishModal.desc}
-            </p>
-
-            <div className="space-y-2 border-t border-[#FC5A1F]/15 pt-4">
-              <h4 className="text-xs font-bold text-[#FC5A1F] uppercase tracking-wider">Dish Highlights &amp; Customization:</h4>
-              <div className="grid grid-cols-2 gap-2 text-xs text-white">
-                <div className="flex items-center gap-2">
-                  <i className="fa-solid fa-fire text-[#FC5A1F]"></i>
-                  <span>Spice Level: {selectedDishModal.spicy || 'Mild/Medium'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <i className="fa-solid fa-utensils text-[#FFB77B]"></i>
-                  <span>Preparation: Fresh Wok-Hei</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <i className="fa-solid fa-circle-check text-emerald-400"></i>
-                  <span>Packaging: Leak-Proof Container</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <i className="fa-solid fa-clock text-cyan-400"></i>
-                  <span>Delivery: 25-35 Minutes</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-2 flex items-center gap-3">
-              <a
-                href={createWhatsAppLink(`Hello New Manchow! I want to order *${selectedDishModal.name}* (${selectedDishModal.price}).`)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-3.5 rounded-xl font-bold text-sm text-center flex items-center justify-center gap-2 shadow-lg"
+              <button
+                onClick={() => setSelectedDishModal(null)}
+                className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white w-9 h-9 rounded-full flex items-center justify-center transition-colors border border-white/20 btn-click-effect"
               >
-                <i className="fa-brands fa-whatsapp text-xl"></i>
-                Confirm Order on WhatsApp
-              </a>
-            </div>
-          </div>
-        </div>
-      )}
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+
+              <div className="flex items-center gap-4">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden shrink-0 border border-[#FC5A1F]/40">
+                  <img src={selectedDishModal.image} alt={selectedDishModal.name} className="w-full h-full object-cover" />
+                </div>
+                <div>
+                  <span className="text-xs bg-[#FC5A1F]/20 text-[#FC5A1F] font-bold px-2.5 py-0.5 rounded-full">{selectedDishModal.tag}</span>
+                  <h3 className="font-serif font-bold text-2xl text-white mt-1">{selectedDishModal.name}</h3>
+                  <p className="font-serif font-bold text-[#FFB77B] text-xl">{selectedDishModal.price}</p>
+                </div>
+              </div>
+
+              <p className="text-xs sm:text-sm text-[#E4BEB3] leading-relaxed">
+                {selectedDishModal.desc}
+              </p>
+
+              <div className="space-y-2 border-t border-[#FC5A1F]/15 pt-4">
+                <h4 className="text-xs font-bold text-[#FC5A1F] uppercase tracking-wider">Dish Highlights &amp; Customization:</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs text-white">
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-fire text-[#FC5A1F]"></i>
+                    <span>Spice Level: {selectedDishModal.spicy || 'Mild/Medium'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-utensils text-[#FFB77B]"></i>
+                    <span>Preparation: Fresh Wok-Hei</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-circle-check text-emerald-400"></i>
+                    <span>Packaging: Leak-Proof Container</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <i className="fa-solid fa-clock text-cyan-400"></i>
+                    <span>Delivery: 25-35 Minutes</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex items-center gap-3">
+                <motion.a
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    showToast(`Order confirmed for ${selectedDishModal.name}!`);
+                    setSelectedDishModal(null);
+                  }}
+                  href={createWhatsAppLink(`Hello New Manchow! I want to order *${selectedDishModal.name}* (${selectedDishModal.price}).`)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white py-3.5 rounded-xl font-bold text-sm text-center flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <i className="fa-brands fa-whatsapp text-xl"></i>
+                  Confirm Order on WhatsApp
+                </motion.a>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
